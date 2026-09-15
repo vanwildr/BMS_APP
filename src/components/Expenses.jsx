@@ -13,19 +13,19 @@ function Expenses() {
   const [csvDataWithCategories, setCsvDataWithCategories] = useState([])
   const [totalCount, setTotalCount] = useState(0)
   const [filters, setFilters] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-    categoryId: '',
+    start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    category_id: '',
     page: 1,
     pageSize: 20,
-    sortBy: 'expenseDate',
+    sortBy: 'expense_date',
     sortOrder: 'desc'
   })
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
-    expenseDate: new Date().toISOString().split('T')[0],
-    categoryId: '',
+    expense_date: new Date().toISOString().split('T')[0],
+    category_id: '',
     notes: ''
   })
 
@@ -89,8 +89,8 @@ function Expenses() {
     setFormData({
       amount: expense.amount,
       description: expense.description,
-      expenseDate: expense.expenseDate.split('T')[0],
-      categoryId: expense.categoryId,
+      expense_date: expense.expense_date.split('T')[0],
+      category_id: expense.category_id,
       notes: expense.notes || ''
     })
     setShowModal(true)
@@ -100,8 +100,8 @@ function Expenses() {
     setFormData({
       amount: '',
       description: '',
-      expenseDate: new Date().toISOString().split('T')[0],
-      categoryId: '',
+      expense_date: new Date().toISOString().split('T')[0],
+      category_id: '',
       notes: ''
     })
     setEditingExpense(null)
@@ -131,7 +131,7 @@ function Expenses() {
         description1: values[4],
         description2: values[5],
         amount: Math.abs(amount), // Convert to positive for display
-        categoryId: '',
+        category_id: '',
         notes: `${values[0]} - ****${values[1].slice(-4)}`
       })
     }
@@ -165,9 +165,9 @@ function Expenses() {
     reader.readAsText(file)
   }
 
-  const handleCategoryChange = (index, categoryId) => {
+  const handleCategoryChange = (index, category_id) => {
     const updated = [...csvDataWithCategories]
-    updated[index].categoryId = categoryId
+    updated[index].category_id = category_id
     setCsvDataWithCategories(updated)
   }
 
@@ -178,7 +178,7 @@ function Expenses() {
   }
 
   const handleImportExpenses = async () => {
-    const toImport = csvDataWithCategories.filter(item => item.categoryId)
+    const toImport = csvDataWithCategories.filter(item => item.category_id)
 
     if (toImport.length === 0) {
       alert('Please select a category for at least one expense')
@@ -191,8 +191,8 @@ function Expenses() {
           amount: item.amount.toString(),
           description: item.description1 || item.description2 || 'Bank Import',
           description2: item.description2 || '',
-          expenseDate: formatCSVDate(item.date),
-          categoryId: parseInt(item.categoryId),
+          expense_date: formatCSVDate(item.date),
+          category_id: parseInt(item.category_id),
           notes: item.notes
         })
       }
@@ -273,8 +273,8 @@ function Expenses() {
             <input
               type="date"
               className="form-input"
-              value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value, page: 1 })}
+              value={filters.start_date}
+              onChange={(e) => setFilters({ ...filters, start_date: e.target.value, page: 1 })}
             />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
@@ -282,16 +282,16 @@ function Expenses() {
             <input
               type="date"
               className="form-input"
-              value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value, page: 1 })}
+              value={filters.end_date}
+              onChange={(e) => setFilters({ ...filters, end_date: e.target.value, page: 1 })}
             />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label">Category</label>
             <select
               className="form-select"
-              value={filters.categoryId}
-              onChange={(e) => setFilters({ ...filters, categoryId: e.target.value, page: 1 })}
+              value={filters.category_id}
+              onChange={(e) => setFilters({ ...filters, category_id: e.target.value, page: 1 })}
             >
               <option value="">All Categories</option>
               {categories.map((cat) => (
@@ -310,14 +310,14 @@ function Expenses() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('expenseDate')}>
-                  Date {renderSortIcon('expenseDate')}
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('expense_date')}>
+                  Date {renderSortIcon('expense_date')}
                 </th>
                 <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('description')}>
                   Description {renderSortIcon('description')}
                 </th>
-                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('categoryName')}>
-                  Category {renderSortIcon('categoryName')}
+                <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('category_name')}>
+                  Category {renderSortIcon('category_name')}
                 </th>
                 <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('amount')}>
                   Amount {renderSortIcon('amount')}
@@ -331,13 +331,13 @@ function Expenses() {
             <tbody>
               {expenses.map((expense) => (
                 <tr key={expense.id}>
-                  <td>{new Date(expense.expenseDate).toLocaleDateString()}</td>
+                  <td>{new Date(expense.expense_date).toLocaleDateString()}</td>
                   <td>
                     <strong>{expense.description}</strong>
                     {expense.description2 && <div style={{ fontSize: '0.9em', color: '#333', marginTop: '4px' }}>{expense.description2}</div>}
                   </td>
                   <td>
-                    <span className="badge badge-success">{expense.categoryName}</span>
+                    <span className="badge badge-success">{expense.category_name}</span>
                   </td>
                   <td>${expense.amount.toFixed(2)}</td>
                   <td>{expense.notes || '-'}</td>
@@ -430,8 +430,8 @@ function Expenses() {
                 <input
                   type="date"
                   className="form-input"
-                  value={formData.expenseDate}
-                  onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
+                  value={formData.expense_date}
+                  onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
                   required
                 />
               </div>
@@ -439,8 +439,8 @@ function Expenses() {
                 <label className="form-label">Category *</label>
                 <select
                   className="form-select"
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                   required
                 >
                   <option value="">Select Category</option>
@@ -494,7 +494,7 @@ function Expenses() {
                   </thead>
                   <tbody>
                     {csvDataWithCategories.map((item, index) => (
-                      <tr key={index} style={{ backgroundColor: !item.categoryId ? '#fff3e0' : 'transparent' }}>
+                      <tr key={index} style={{ backgroundColor: !item.category_id ? '#fff3e0' : 'transparent' }}>
                         <td>{formatCSVDate(item.date)}</td>
                         <td>
                           <strong>{item.description1}</strong>
@@ -506,7 +506,7 @@ function Expenses() {
                         <td>
                           <select
                             className="form-select"
-                            value={item.categoryId}
+                            value={item.category_id}
                             onChange={(e) => handleCategoryChange(index, e.target.value)}
                             style={{ padding: '6px', minWidth: '150px' }}
                           >
@@ -536,7 +536,7 @@ function Expenses() {
                   style={{ background: '#4CAF50' }}
                 >
                   <Check size={18} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  Import Selected ({csvDataWithCategories.filter(item => item.categoryId).length})
+                  Import Selected ({csvDataWithCategories.filter(item => item.category_id).length})
                 </button>
               </div>
             </div>

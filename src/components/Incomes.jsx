@@ -17,11 +17,11 @@ function Incomes() {
     amount: '',
     source: '',
     description: '',
-    incomeDate: new Date().toISOString().split('T')[0],
-    isRecurring: false,
+    income_date: new Date().toISOString().split('T')[0],
+    is_recurring: false,
     frequency: 3,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: ''
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: ''
   })
 
   const frequencyOptions = [
@@ -45,7 +45,7 @@ function Incomes() {
 
   const loadRecurringIncomes = async () => {
     try {
-      const response = await getIncomes({ isRecurring: true, page: 1, pageSize: 50 })
+      const response = await getIncomes({ is_recurring: true, page: 1, pageSize: 50 })
       const recurringData = response.data.data || []
       setRecurringIncomes(recurringData)
       return recurringData
@@ -84,8 +84,8 @@ function Incomes() {
 
     // Aggregate regular income by month
     incomesData.forEach(income => {
-      if (!income.isRecurring) {
-        const incomeDate = new Date(income.incomeDate)
+      if (!income.is_recurring) {
+        const incomeDate = new Date(income.income_date)
         if (incomeDate.getFullYear() === currentYear) {
           const month = incomeDate.getMonth()
           monthlyData[month].totalIncome += parseFloat(income.amount) || 0
@@ -95,8 +95,8 @@ function Incomes() {
 
     // Add recurring income projections
     recurringIncomes.forEach(income => {
-      const startDate = new Date(income.startDate || income.incomeDate)
-      const endDate = income.endDate ? new Date(income.endDate) : new Date(currentYear + 1, 0, 0)
+      const startDate = new Date(income.start_date || income.income_date)
+      const endDate = income.end_date ? new Date(income.end_date) : new Date(currentYear + 1, 0, 0)
 
       let currentDate = new Date(startDate)
 
@@ -148,11 +148,11 @@ function Incomes() {
         amount: parseFloat(formData.amount),
         source: formData.source,
         description: formData.description,
-        incomeDate: formData.incomeDate,
-        isRecurring: formData.isRecurring,
-        frequency: formData.isRecurring ? parseInt(formData.frequency) : null,
-        startDate: formData.isRecurring ? formData.startDate : null,
-        endDate: formData.isRecurring ? formData.endDate : null
+        income_date: formData.income_date,
+        is_recurring: formData.is_recurring,
+        frequency: formData.is_recurring ? parseInt(formData.frequency) : null,
+        start_date: formData.is_recurring ? formData.start_date : null,
+        end_date: formData.is_recurring ? formData.end_date : null
       }
       if (editingIncome) {
         await updateIncome(editingIncome.id, submitData)
@@ -175,11 +175,11 @@ function Incomes() {
       amount: income.amount,
       source: income.source,
       description: income.description,
-      incomeDate: income.incomeDate.split('T')[0],
-      isRecurring: income.isRecurring,
+      income_date: income.income_date.split('T')[0],
+      is_recurring: income.is_recurring,
       frequency: income.frequency || 3,
-      startDate: income.startDate ? income.startDate.split('T')[0] : income.incomeDate.split('T')[0],
-      endDate: income.endDate ? income.endDate.split('T')[0] : ''
+      start_date: income.start_date ? income.start_date.split('T')[0] : income.income_date.split('T')[0],
+      end_date: income.end_date ? income.end_date.split('T')[0] : ''
     })
     setShowModal(true)
   }
@@ -201,11 +201,11 @@ function Incomes() {
       amount: '',
       source: '',
       description: '',
-      incomeDate: new Date().toISOString().split('T')[0],
-      isRecurring: false,
+      income_date: new Date().toISOString().split('T')[0],
+      is_recurring: false,
       frequency: 3,
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: ''
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: ''
     })
     setEditingIncome(null)
   }
@@ -217,8 +217,8 @@ function Incomes() {
 
   const generateOccurrences = (income) => {
     const occurrences = []
-    const startDate = new Date(income.startDate || income.incomeDate)
-    const endDate = income.endDate ? new Date(income.endDate) : new Date(startDate.getFullYear() + 2, 11, 31)
+    const startDate = new Date(income.start_date || income.income_date)
+    const endDate = income.end_date ? new Date(income.end_date) : new Date(startDate.getFullYear() + 2, 11, 31)
     let currentDate = new Date(startDate)
     const maxOccurrences = 26 // Show up to 26 occurrences (1 year for biweekly)
 
@@ -362,30 +362,30 @@ function Incomes() {
             <tbody>
               {incomes.map((income) => (
                 <tr key={income.id}>
-                  <td>{new Date(income.incomeDate).toLocaleDateString()}</td>
+                  <td>{new Date(income.income_date).toLocaleDateString()}</td>
                   <td><strong>{income.source}</strong></td>
                   <td>{income.description || '-'}</td>
                   <td style={{ color: '#4CAF50', fontWeight: 'bold' }}>
                     +${income.amount.toFixed(2)}
                   </td>
                   <td>
-                    {income.isRecurring ? (
+                    {income.is_recurring ? (
                       <span className="badge badge-success">Yes</span>
                     ) : (
                       <span className="badge">No</span>
                     )}
                   </td>
                   <td>
-                    {income.endDate ? (
+                    {income.end_date ? (
                       <span style={{ color: '#FF9800', fontWeight: 'bold' }}>
-                        {new Date(income.endDate).toLocaleDateString()}
+                        {new Date(income.end_date).toLocaleDateString()}
                       </span>
                     ) : (
                       <span style={{ color: '#666' }}>-</span>
                     )}
                   </td>
                   <td>
-                    {income.isRecurring ? (
+                    {income.is_recurring ? (
                       <button 
                         className="btn btn-sm btn-info" 
                         onClick={() => handleAdjustAmounts(income)}
@@ -454,8 +454,8 @@ function Incomes() {
                 <input
                   type="date"
                   className="form-input"
-                  value={formData.incomeDate}
-                  onChange={(e) => setFormData({ ...formData, incomeDate: e.target.value })}
+                  value={formData.income_date}
+                  onChange={(e) => setFormData({ ...formData, income_date: e.target.value })}
                   required
                 />
               </div>
@@ -463,13 +463,13 @@ function Incomes() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="checkbox"
-                    checked={formData.isRecurring}
-                    onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                    checked={formData.is_recurring}
+                    onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
                   />
                   <span>Recurring Income</span>
                 </label>
               </div>
-              {formData.isRecurring && (
+              {formData.is_recurring && (
                 <>
                   <div className="form-group">
                     <label className="form-label">Frequency *</label>
@@ -487,8 +487,8 @@ function Incomes() {
                     <input 
                       type="date" 
                       className="form-input" 
-                      value={formData.startDate} 
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} 
+                      value={formData.start_date} 
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} 
                       required 
                     />
                   </div>
@@ -497,8 +497,8 @@ function Incomes() {
                     <input 
                       type="date" 
                       className="form-input" 
-                      value={formData.endDate} 
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
+                      value={formData.end_date} 
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} 
                     />
                     <small style={{ color: '#666' }}>Leave empty for indefinite recurring income</small>
                   </div>

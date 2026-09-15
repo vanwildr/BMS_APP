@@ -12,9 +12,9 @@ function SavingsGoals() {
   const [contributeAmount, setContributeAmount] = useState('')
   const [formData, setFormData] = useState({
     name: '',
-    targetAmount: '',
-    currentAmount: '',
-    targetDate: '',
+    target_amount: '',
+    current_amount: '',
+    deadline: '',
     description: ''
   })
 
@@ -80,9 +80,9 @@ function SavingsGoals() {
     setEditingGoal(goal)
     setFormData({
       name: goal.name,
-      targetAmount: goal.targetAmount,
-      currentAmount: goal.currentAmount,
-      targetDate: goal.targetDate ? goal.targetDate.split('T')[0] : '',
+      target_amount: goal.target_amount,
+      current_amount: goal.current_amount,
+      deadline: goal.deadline ? goal.deadline.split('T')[0] : '',
       description: goal.description || ''
     })
     setShowModal(true)
@@ -96,9 +96,9 @@ function SavingsGoals() {
   const resetForm = () => {
     setFormData({
       name: '',
-      targetAmount: '',
-      currentAmount: '',
-      targetDate: '',
+      target_amount: '',
+      current_amount: '',
+      deadline: '',
       description: ''
     })
     setEditingGoal(null)
@@ -133,9 +133,9 @@ function SavingsGoals() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div>
                     <h3>{goal.name}</h3>
-                    {goal.targetDate && (
+                    {goal.deadline && (
                       <small style={{ color: '#666' }}>
-                        Target: {new Date(goal.targetDate).toLocaleDateString()}
+                        Target: {new Date(goal.deadline).toLocaleDateString()}
                       </small>
                     )}
                   </div>
@@ -156,10 +156,10 @@ function SavingsGoals() {
                 <div style={{ marginTop: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <span style={{ fontWeight: 'bold', color: '#4CAF50' }}>
-                      ${goal.currentAmount.toFixed(2)}
+                      ${goal.current_amount.toFixed(2)}
                     </span>
                     <span style={{ fontWeight: 'bold' }}>
-                      ${goal.targetAmount.toFixed(2)}
+                      ${goal.target_amount.toFixed(2)}
                     </span>
                   </div>
                   <div className="progress-bar">
@@ -225,8 +225,8 @@ function SavingsGoals() {
                   type="number"
                   step="0.01"
                   className="form-input"
-                  value={formData.targetAmount}
-                  onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
+                  value={formData.target_amount}
+                  onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
                   required
                 />
               </div>
@@ -236,8 +236,8 @@ function SavingsGoals() {
                   type="number"
                   step="0.01"
                   className="form-input"
-                  value={formData.currentAmount}
-                  onChange={(e) => setFormData({ ...formData, currentAmount: e.target.value })}
+                  value={formData.current_amount}
+                  onChange={(e) => setFormData({ ...formData, current_amount: e.target.value })}
                 />
               </div>
               <div className="form-group">
@@ -245,8 +245,8 @@ function SavingsGoals() {
                 <input
                   type="date"
                   className="form-input"
-                  value={formData.targetDate}
-                  onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+                  value={formData.deadline}
+                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                 />
               </div>
               <div className="form-group">
@@ -278,7 +278,7 @@ function SavingsGoals() {
             <div style={{ marginBottom: '20px' }}>
               <p><strong>{selectedGoal.name}</strong></p>
               <small style={{ color: '#666' }}>
-                Current: ${selectedGoal.currentAmount.toFixed(2)} / ${selectedGoal.targetAmount.toFixed(2)}
+                Current: ${selectedGoal.current_amount.toFixed(2)} / ${selectedGoal.target_amount.toFixed(2)}
               </small>
             </div>
             <form onSubmit={handleContribute}>

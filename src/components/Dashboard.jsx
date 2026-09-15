@@ -15,11 +15,11 @@ function Dashboard() {
   const [recurringIncomes, setRecurringIncomes] = useState([])
   const [projectedCashBalance, setProjectedCashBalance] = useState([])
   const [showCashProjection, setShowCashProjection] = useState(false)
-  const [sortColumn, setSortColumn] = useState('categoryName')
+  const [sortColumn, setSortColumn] = useState('category_name')
   const [sortDirection, setSortDirection] = useState('asc')
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0]
   })
 
   useEffect(() => {
@@ -123,9 +123,9 @@ function Dashboard() {
         const frequency = expense.frequency
         if (frequency === 2 || frequency === 5) { // Weekly or Biweekly
           const interval = frequency === 2 ? 7 : 14
-          const startDate = new Date(expense.startDate)
+          const startDate = new Date(expense.start_date)
           const daysDiff = Math.floor((weekStart - startDate) / (1000 * 60 * 60 * 24))
-          if (daysDiff >= 0 && daysDiff % interval < 7 && (!expense.endDate || new Date(expense.endDate) >= weekStart)) {
+          if (daysDiff >= 0 && daysDiff % interval < 7 && (!expense.end_date || new Date(expense.end_date) >= weekStart)) {
             weeklyExpenses += parseFloat(expense.amount) || 0
           }
         } else if (frequency === 1) { // Daily
@@ -160,9 +160,9 @@ function Dashboard() {
 
   const getSortedCategories = () => {
     const categoriesWithSpending = categories.map(category => {
-      const budget = budgets.find(b => b.categoryId === category.id)
+      const budget = budgets.find(b => b.category_id === category.id)
       const spent = dashboard?.topCategoriesBySpending?.find(
-        cat => cat.categoryId === category.id
+        cat => cat.category_id === category.id
       )?.totalAmount || 0
       const remaining = budget ? budget.amount - spent : 0
       const percentUsed = budget ? (spent / budget.amount) * 100 : 0
@@ -198,7 +198,7 @@ function Dashboard() {
           aValue = a.percentUsed
           bValue = b.percentUsed
           break
-        case 'categoryName':
+        case 'category_name':
         default:
           aValue = a.name
           bValue = b.name
@@ -263,8 +263,8 @@ function Dashboard() {
             <input
               type="date"
               className="form-input"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+              value={dateRange.start_date}
+              onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
               style={{ width: '140px' }}
             />
           </div>
@@ -273,8 +273,8 @@ function Dashboard() {
             <input
               type="date"
               className="form-input"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+              value={dateRange.end_date}
+              onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
               style={{ width: '140px' }}
             />
           </div>
@@ -290,7 +290,7 @@ function Dashboard() {
           </div>
           {alerts.map((alert) => (
             <div key={alert.budgetId} className="alert alert-warning" style={{ marginBottom: '10px' }}>
-              <strong>{alert.categoryName}</strong>: {alert.message}
+                <strong>{alert.category_name}</strong>: {alert.message}
               <br />
               <small>
                 Spent: ${alert.spentAmount.toFixed(2)} / ${alert.budgetAmount.toFixed(2)} 
@@ -309,7 +309,7 @@ function Dashboard() {
             <table className="table">
               <thead>
                 <tr>
-                  <SortableHeader column="categoryName" label="Category" />
+                  <SortableHeader column="category_name" label="Category" />
                   <SortableHeader column="budget" label="Budget" />
                   <SortableHeader column="spent" label="Spent" />
                   <SortableHeader column="remaining" label="Remaining" />
@@ -469,11 +469,11 @@ function Dashboard() {
               <Pie
                 data={dashboard.topCategoriesBySpending}
                 dataKey="totalAmount"
-                nameKey="categoryName"
+                nameKey="category_name"
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                label={(entry) => `${entry.categoryName} (${entry.percentage.toFixed(1)}%)`}
+                label={(entry) => `${entry.category_name} (${entry.percentage.toFixed(1)}%)`}
               >
                 {dashboard.topCategoriesBySpending.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -576,7 +576,7 @@ function Dashboard() {
                 <td>{new Date(expense.expenseDate).toLocaleDateString()}</td>
                 <td>{expense.description}</td>
                 <td>
-                  <span className="badge badge-success">{expense.categoryName}</span>
+                  <span className="badge badge-success">{expense.category_name}</span>
                 </td>
                 <td>${expense.amount.toFixed(2)}</td>
               </tr>

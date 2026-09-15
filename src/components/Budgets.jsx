@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getBudgets, createBudget, updateBudget, deleteBudget, getCategories } from '../services/api'
+import { getBudgets, createBudget, updateBudget, deleteBudget, getCategories, getExpenses } from '../services/api'
 import { Plus, Edit2, Trash2, X } from 'lucide-react'
 
 function Budgets() {
@@ -12,19 +12,19 @@ function Budgets() {
     new Date().toISOString().slice(0, 7) // Format: YYYY-MM
   )
   const [formData, setFormData] = useState({
-    categoryId: '',
+    category_id: '',
     amount: '',
     period: 2, // Monthly
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
-    alertThreshold: 80
+    start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
+    alert_threshold: 80
   })
 
   const getMonthDateRange = (monthString) => {
     const [year, month] = monthString.split('-').map(Number)
     const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0]
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0]
-    return { startDate, endDate }
+    const end_date = new Date(year, month, 0).toISOString().split('T')[0]
+    return { startDate, end_date }
   }
 
   useEffect(() => {
@@ -48,12 +48,37 @@ function Budgets() {
     try {
       setLoading(true)
       const response = await getBudgets({ isActive: true })
-      // Filter budgets by startDate month and year matching selectedMonth
+      // Filter budgets by start_date month and year matching selectedMonth
       const filteredBudgets = response.data.filter((budget) => {
-        const budgetMonth = budget.startDate.slice(0, 7) // Extract YYYY-MM from startDate
+        const budgetMonth = budget.start_date.slice(0, 7) // Extract YYYY-MM from start_date
         return budgetMonth === selectedMonth
       })
-      setBudgets(filteredBudgets)
+      
+      // Fetch expenses for the selected month to calculate spentAmount
+      const [year, month] = selectedMonth.split('-').map(Number)
+      const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0]
+      const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+      const expensesResponse = await getExpenses({ start_date: startDate, end_date: endDate, pageSize: 1000 })
+      const expenses = expensesResponse.data.data || []
+      
+      // Calculate spentAmount and derived fields for each budget
+      const budgetsWithSpent = filteredBudgets.map((budget) => {
+        const categoryExpenses = expenses.filter(exp => exp.category_id === budget.category_id)
+        const spentAmount = categoryExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)
+        const utilizationPercentage = budget.amount > 0 ? (spentAmount / budget.amount) * 100 : 0
+        const remainingAmount = budget.amount - spentAmount
+        const periodName = budget.month ? `Month ${budget.month}` : `${new Date(budget.start_date).toLocaleDateString()} to ${new Date(budget.end_date).toLocaleDateString()}`
+        
+        return {
+          ...budget,
+          spentAmount,
+          utilizationPercentage,
+          remainingAmount,
+          periodName
+        }
+      })
+      
+      setBudgets(budgetsWithSpent)
     } catch (error) {
       console.error('Error loading budgets:', error)
     } finally {
@@ -91,28 +116,28 @@ function Budgets() {
 
   const handleEdit = (budget) => {
     setEditingBudget(budget)
-    const budgetMonth = budget.startDate.slice(0, 7) // Extract YYYY-MM
+    const budgetMonth = budget.start_date.slice(0, 7) // Extract YYYY-MM
     setSelectedMonth(budgetMonth)
     setFormData({
-      categoryId: budget.categoryId,
+      category_id: budget.category_id,
       amount: budget.amount,
       period: budget.period,
-      startDate: budget.startDate.split('T')[0],
-      endDate: budget.endDate.split('T')[0],
-      alertThreshold: budget.alertThreshold || 80
+      start_date: budget.start_date.split('T')[0],
+      end_date: budget.end_date.split('T')[0],
+      alert_threshold: budget.alert_threshold || 80
     })
     setShowModal(true)
   }
 
   const resetForm = () => {
-    const { startDate, endDate } = getMonthDateRange(selectedMonth)
+    const { startDate, end_date } = getMonthDateRange(selectedMonth)
     setFormData({
-      categoryId: '',
+      category_id: '',
       amount: '',
       period: 2,
-      startDate,
-      endDate,
-      alertThreshold: 80
+      start_date: startDate,
+      end_date,
+      alert_threshold: 80
     })
     setEditingBudget(null)
   }
@@ -158,7 +183,7 @@ function Budgets() {
               <div key={budget.id} className="card" style={{ margin: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div>
-                    <h3>{budget.categoryName}</h3>
+                    <h3>{budget.category_name}</h3>
                     <small style={{ color: '#666' }}>{budget.periodName}</small>
                   </div>
                   <div>
@@ -190,7 +215,7 @@ function Budgets() {
                     </small>
                   </div>
                   <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                    {new Date(budget.startDate).toLocaleDateString()} - {new Date(budget.endDate).toLocaleDateString()}
+                    {new Date(budget.start_date).toLocaleDateString()} - {new Date(budget.end_date).toLocaleDateString()}
                   </small>
                 </div>
               </div>
@@ -213,8 +238,8 @@ function Budgets() {
                 <label className="form-label">Category *</label>
                 <select
                   className="form-select"
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                   required
                 >
                   <option value="">Select Category</option>
@@ -252,8 +277,8 @@ function Budgets() {
                 <input
                   type="date"
                   className="form-input"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                   required
                 />
               </div>
@@ -262,8 +287,8 @@ function Budgets() {
                 <input
                   type="date"
                   className="form-input"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                   required
                 />
               </div>
@@ -272,8 +297,8 @@ function Budgets() {
                 <input
                   type="number"
                   className="form-input"
-                  value={formData.alertThreshold}
-                  onChange={(e) => setFormData({ ...formData, alertThreshold: e.target.value })}
+                  value={formData.alert_threshold}
+                  onChange={(e) => setFormData({ ...formData, alert_threshold: e.target.value })}
                   placeholder="80"
                 />
               </div>

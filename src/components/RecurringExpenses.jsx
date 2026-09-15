@@ -14,10 +14,10 @@ function RecurringExpenses() {
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
-    categoryId: '',
+    category_id: '',
     frequency: 3,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: ''
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: ''
   })
 
   const frequencyOptions = [
@@ -50,7 +50,7 @@ function RecurringExpenses() {
   const loadRecurringExpenses = async () => {
     try {
       setLoading(true)
-      const response = await getRecurringExpenses({ isActive: true })
+      const response = await getRecurringExpenses({ is_active: true })
       setRecurringExpenses(response.data)
     } catch (error) {
       console.error('Error loading recurring expenses:', error)
@@ -63,7 +63,7 @@ function RecurringExpenses() {
     e.preventDefault()
     try {
       if (editingExpense) {
-        await updateRecurringExpense(editingExpense.id, { ...formData, isActive: true })
+        await updateRecurringExpense(editingExpense.id, { ...formData, is_active: true })
       } else {
         await createRecurringExpense(formData)
       }
@@ -92,10 +92,10 @@ function RecurringExpenses() {
     setFormData({
       name: expense.name,
       amount: expense.amount,
-      categoryId: expense.categoryId,
+      category_id: expense.category_id,
       frequency: expense.frequency,
-      startDate: expense.startDate.split('T')[0],
-      endDate: expense.endDate ? expense.endDate.split('T')[0] : ''
+      start_date: expense.start_date.split('T')[0],
+      end_date: expense.end_date ? expense.end_date.split('T')[0] : ''
     })
     setShowModal(true)
   }
@@ -114,8 +114,8 @@ function RecurringExpenses() {
 
   const resetForm = () => {
     setFormData({
-      name: '', amount: '', categoryId: '', frequency: 3,
-      startDate: new Date().toISOString().split('T')[0], endDate: ''
+      name: '', amount: '', category_id: '', frequency: 3,
+      start_date: new Date().toISOString().split('T')[0], end_date: ''
     })
     setEditingExpense(null)
   }
@@ -126,8 +126,8 @@ function RecurringExpenses() {
     const projections = []
 
     recurringExpenses.forEach(expense => {
-      if (!expense.isActive) return
-      let currentDate = new Date(expense.nextDueDate)
+      if (!expense.is_active) return
+      let currentDate = new Date(expense.nextDueDate || expense.start_date)
 
       while (currentDate <= nextMonth) {
         if (currentDate >= now) {
@@ -176,10 +176,10 @@ function RecurringExpenses() {
     targetDate.setHours(0, 0, 0, 0)
     
     return recurringExpenses.filter(expense => {
-      if (!expense.isActive) return false
+      if (!expense.is_active) return false
       
-      const startDate = new Date(expense.startDate)
-      const endDate = expense.endDate ? new Date(expense.endDate) : null
+      const startDate = new Date(expense.start_date)
+      const endDate = expense.end_date ? new Date(expense.end_date) : null
       
       if (targetDate < startDate) return false
       if (endDate && targetDate > endDate) return false
@@ -293,7 +293,7 @@ function RecurringExpenses() {
                         <br/><small style={{ color: '#666' }}>{proj.projectedDate.toLocaleDateString('en-US', { weekday: 'short' })}</small>
                       </td>
                       <td>{proj.name}</td>
-                      <td><span className="badge badge-success">{proj.categoryName}</span></td>
+                      <td><span className="badge badge-success">{proj.category_name}</span></td>
                       <td>{getFrequencyLabel(proj.frequency)}</td>
                       <td style={{ fontWeight: 'bold', color: '#F44336' }}>${proj.amount.toFixed(2)}</td>
                       <td>
@@ -434,7 +434,7 @@ function RecurringExpenses() {
               {recurringExpenses.map((expense) => (
                 <tr key={expense.id}>
                   <td><strong>{expense.name}</strong></td>
-                  <td><span className="badge badge-success">{expense.categoryName}</span></td>
+                  <td><span className="badge badge-success">{expense.category_name}</span></td>
                   <td style={{ fontWeight: 'bold', color: '#F44336' }}>${expense.amount.toFixed(2)}</td>
                   <td>{getFrequencyLabel(expense.frequency)}</td>
                   <td>{new Date(expense.nextDueDate).toLocaleDateString()}<br/><small style={{ color: '#666' }}>{new Date(expense.nextDueDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</small></td>
@@ -469,7 +469,7 @@ function RecurringExpenses() {
               </div>
               <div className="form-group">
                 <label className="form-label">Category *</label>
-                <select className="form-select" value={formData.categoryId} onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })} required>
+                <select className="form-select" value={formData.category_id} onChange={(e) => setFormData({ ...formData, category_id: e.target.value })} required>
                   <option value="">Select Category</option>
                   {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                 </select>
@@ -482,11 +482,11 @@ function RecurringExpenses() {
               </div>
               <div className="form-group">
                 <label className="form-label">Start Date *</label>
-                <input type="date" className="form-input" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} required />
+                <input type="date" className="form-input" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} required />
               </div>
               <div className="form-group">
                 <label className="form-label">End Date (Optional)</label>
-                <input type="date" className="form-input" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} />
+                <input type="date" className="form-input" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
                 <small style={{ color: '#666' }}>Leave empty for indefinite</small>
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>{editingExpense ? 'Update' : 'Create'} Recurring Expense</button>

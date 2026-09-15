@@ -1,33 +1,54 @@
 # Budget Management System - Frontend
 
-A modern React-based frontend for the Budget Management System API.
+A modern React-based frontend for the Budget Management System. Now using Supabase as the database backend and deployable on Vercel.
 
 ## Features
 
 - 📊 **Dashboard** - Overview of finances with charts and trends
-- 💰 **Expense Tracking** - Add, edit, and filter expenses
+- 💰 **Expense Tracking** - Add, edit, and filter expenses with Excel-like sheet view
 - 💵 **Income Management** - Track income sources
 - 🎯 **Budget Planning** - Set and monitor budgets by category
 - 🏆 **Savings Goals** - Create and track savings progress
+- 🔐 **Secure Login** - Protected routes with authentication
+- ☁️ **Cloud Database** - Supabase PostgreSQL integration
+- 🚀 **Production Ready** - Deploy to Vercel with one click
 
-## Setup
+## Quick Start
 
-### Prerequisites
+### 1. Prerequisites
 
 - Node.js 18+ installed
-- BMS API running on `http://localhost:5000`
+- Supabase account (free at supabase.com)
+- GitHub account (for Vercel deployment)
 
-### Installation
+### 2. Local Development
 
 ```bash
+# Clone or download the project
+cd BMS-Frontend
+
 # Install dependencies
 npm install
+
+# Create .env.local with Supabase credentials
+# Copy from .env.example and add your Supabase URL and Anon Key
 
 # Start development server
 npm run dev
 ```
 
-The app will be available at `http://localhost:3000`
+The app will be available at `http://localhost:5173`
+
+### 3. Deploy to Vercel
+
+See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for step-by-step instructions.
+
+## Setup Guides
+
+- **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** - Complete guide to set up Supabase database
+- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Deploy to Vercel with one click
+- **[SUPABASE_MIGRATION.md](./SUPABASE_MIGRATION.md)** - What changed in the migration
+- **[SECURITY_SETUP.md](./SECURITY_SETUP.md)** - Security and authentication setup
 
 ### Building for Production
 

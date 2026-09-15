@@ -13,7 +13,7 @@ function ExpenseSheet() {
   const [rowData, setRowData] = useState({
     date: '',
     description: '',
-    amounts: {} // { categoryId: amount }
+    amounts: {} // { category_id: amount }
   })
   const [error, setError] = useState(null)
 
@@ -46,8 +46,8 @@ function ExpenseSheet() {
 
       // Load expenses for current month
       const expResponse = await getExpenses({
-        startDate: startDate,
-        endDate: endDate,
+        start_date: startDate,
+        end_date: endDate,
         pageSize: 100
       })
       console.log('Expenses loaded:', expResponse.data)
@@ -59,7 +59,7 @@ function ExpenseSheet() {
         const budgetMap = {}
         if (Array.isArray(budgetResponse.data)) {
           budgetResponse.data.forEach(b => {
-            budgetMap[b.categoryName] = b.amount
+            budgetMap[b.category_name] = b.amount
           })
         }
         setBudgets(budgetMap)
@@ -74,20 +74,20 @@ function ExpenseSheet() {
     }
   }
 
-  const getExpenseByDateAndCategory = (date, categoryId) => {
+  const getExpenseByDateAndCategory = (date, category_id) => {
     return expenses.find(
-      exp => exp.expenseDate.split('T')[0] === date && exp.categoryId === categoryId
+      exp => exp.expense_date.split('T')[0] === date && exp.category_id === category_id
     )
   }
 
   const handleEditRow = (date) => {
     // Load existing data for this row
-    const rowExpenses = expenses.filter(e => e.expenseDate.split('T')[0] === date)
+    const rowExpenses = expenses.filter(e => e.expense_date.split('T')[0] === date)
     const amounts = {}
     let description = ''
 
     rowExpenses.forEach(exp => {
-      amounts[exp.categoryId] = exp.amount
+      amounts[exp.category_id] = exp.amount
       if (!description) description = exp.description
     })
 
@@ -116,12 +116,12 @@ function ExpenseSheet() {
     }))
   }
 
-  const handleRowAmountChange = (categoryId, value) => {
+  const handleRowAmountChange = (category_id, value) => {
     setRowData(prev => ({
       ...prev,
       amounts: {
         ...prev.amounts,
-        [categoryId]: value ? parseFloat(value) : 0
+        [category_id]: value ? parseFloat(value) : 0
       }
     }))
   }
@@ -144,13 +144,13 @@ function ExpenseSheet() {
 
     try {
       // Get existing expenses for this date
-      const existingForDate = expenses.filter(e => e.expenseDate.split('T')[0] === rowData.date)
+      const existingForDate = expenses.filter(e => e.expense_date.split('T')[0] === rowData.date)
       const toDelete = new Set(existingForDate.map(e => e.id))
 
       // Create/update expenses
-      for (const [categoryId, amount] of Object.entries(rowData.amounts)) {
+      for (const [category_id, amount] of Object.entries(rowData.amounts)) {
         if (amount && amount > 0) {
-          const existing = existingForDate.find(e => e.categoryId === categoryId)
+          const existing = existingForDate.find(e => e.category_id === category_id)
 
           if (existing) {
             // Update existing
@@ -165,8 +165,8 @@ function ExpenseSheet() {
             await createExpense({
               amount: parseFloat(amount),
               description: rowData.description.trim(),
-              expenseDate: rowData.date,
-              categoryId: categoryId
+              expense_date: rowData.date,
+              category_id: category_id
             })
           }
         }
@@ -224,7 +224,7 @@ function ExpenseSheet() {
     }
 
     try {
-      const rowExpenses = expenses.filter(e => e.expenseDate.split('T')[0] === date)
+      const rowExpenses = expenses.filter(e => e.expense_date.split('T')[0] === date)
       await Promise.all(rowExpenses.map(e => deleteExpense(e.id)))
       await loadAllData()
     } catch (err) {
@@ -233,9 +233,9 @@ function ExpenseSheet() {
     }
   }
 
-  const getCategoryTotal = (categoryId) => {
+  const getCategoryTotal = (category_id) => {
     return expenses
-      .filter(e => e.categoryId === categoryId)
+      .filter(e => e.category_id === category_id)
       .reduce((sum, e) => sum + (e.amount || 0), 0)
   }
 
@@ -276,7 +276,7 @@ function ExpenseSheet() {
   }
 
   // Get unique dates from expenses
-  const dateSet = new Set(expenses.map(e => e.expenseDate.split('T')[0]))
+  const dateSet = new Set(expenses.map(e => e.expense_date.split('T')[0]))
   const uniqueDates = Array.from(dateSet).sort().reverse()
 
   // Add 10 empty rows for new entries
@@ -331,7 +331,7 @@ function ExpenseSheet() {
               const isRealDate = !date.startsWith('new-')
               const displayDate = isRealDate ? formatDateString(date) : ''
               const isEditing = editingRowDate === date
-              const isExpenseRow = isRealDate && expenses.some(e => e.expenseDate.split('T')[0] === date)
+              const isExpenseRow = isRealDate && expenses.some(e => e.expense_date.split('T')[0] === date)
 
               return (
                 <tr key={`${date}-${idx}`} className={isEditing ? 'editing-row' : isExpenseRow ? 'expense-row' : 'empty-row'}>
@@ -385,7 +385,7 @@ function ExpenseSheet() {
                         onClick={() => handleEditRow(date)}
                         title="Click to edit"
                       >
-                        {isExpenseRow && expenses.find(e => e.expenseDate.split('T')[0] === date)?.description}
+                        {isExpenseRow && expenses.find(e => e.expense_date.split('T')[0] === date)?.description}
                       </td>
                       {categories.map(cat => {
                         const expense = isRealDate ? getExpenseByDateAndCategory(date, cat.id) : null
