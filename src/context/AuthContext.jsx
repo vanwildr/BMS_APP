@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
     // For now, using environment variable or hardcoded credentials
     const validUsername = import.meta.env.VITE_LOGIN_USERNAME || 'admin'
     const validPassword = import.meta.env.VITE_LOGIN_PASSWORD || 'secure123'
-
+ console.log('Valid credentials:', validUsername, validPassword);
     if (username === validUsername && password === validPassword) {
       const userData = {
         username: username,
