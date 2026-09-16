@@ -22,8 +22,8 @@ export function AuthProvider({ children }) {
   const login = (username, password) => {
     // In production, this should call your backend API for authentication
     // For now, using environment variable or hardcoded credentials
-    const validUsername = import.meta.env.VITE_LOGIN_USERNAME || 'admin'
-    const validPassword = import.meta.env.VITE_LOGIN_PASSWORD || 'secure123'
+    const validUsername = import.meta.env.VITE_LOGIN_USERNAME || 'admin' //|| 'admin' 
+    const validPassword = import.meta.env.VITE_LOGIN_PASSWORD  || 'secure123' //|| 'secure123'
  console.log('Valid credentials:', validUsername, validPassword);
     if (username === validUsername && password === validPassword) {
       const userData = {

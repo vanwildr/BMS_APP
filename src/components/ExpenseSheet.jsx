@@ -9,11 +9,12 @@ function ExpenseSheet() {
   const [budgets, setBudgets] = useState({})
   const [loading, setLoading] = useState(true)
   const [currentMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7))
-  const [editingRowDate, setEditingRowDate] = useState(null) // The date of the row being edited
+  const [editingExpenseId, setEditingExpenseId] = useState(null) // ID of expense being edited
   const [rowData, setRowData] = useState({
     date: '',
     description: '',
-    amounts: {} // { category_id: amount }
+    category_id: '',
+    amount: 0
   })
   const [error, setError] = useState(null)
 
@@ -80,32 +81,24 @@ function ExpenseSheet() {
     )
   }
 
-  const handleEditRow = (date) => {
-    // Load existing data for this row
-    const rowExpenses = expenses.filter(e => e.expense_date.split('T')[0] === date)
-    const amounts = {}
-    let description = ''
-
-    rowExpenses.forEach(exp => {
-      amounts[exp.category_id] = exp.amount
-      if (!description) description = exp.description
-    })
-
-    setEditingRowDate(date)
+  const handleEditExpense = (expense) => {
+    setEditingExpenseId(expense.id)
     setRowData({
-      date: date,
-      description: description,
-      amounts: amounts
+      date: expense.expense_date.split('T')[0],
+      description: expense.description,
+      category_id: expense.category_id,
+      amount: expense.amount
     })
   }
 
   const handleAddNewRow = () => {
     const todayDate = new Date().toISOString().split('T')[0]
-    setEditingRowDate(`new-${Date.now()}`) // Unique ID for new row
+    setEditingExpenseId('new') // Special ID for new expense
     setRowData({
       date: todayDate,
       description: '',
-      amounts: {}
+      category_id: '',
+      amount: 0
     })
   }
 
@@ -113,16 +106,6 @@ function ExpenseSheet() {
     setRowData(prev => ({
       ...prev,
       [field]: value
-    }))
-  }
-
-  const handleRowAmountChange = (category_id, value) => {
-    setRowData(prev => ({
-      ...prev,
-      amounts: {
-        ...prev.amounts,
-        [category_id]: value ? parseFloat(value) : 0
-      }
     }))
   }
 
@@ -137,74 +120,62 @@ function ExpenseSheet() {
       return
     }
 
-    if (Object.keys(rowData.amounts).length === 0 || Object.values(rowData.amounts).every(v => v === 0 || v === '')) {
-      alert('Please enter at least one amount')
+    if (!rowData.category_id) {
+      alert('Please select a category')
+      return
+    }
+
+    if (!rowData.amount || rowData.amount <= 0) {
+      alert('Please enter a valid amount')
       return
     }
 
     try {
-      // Get existing expenses for this date
-      const existingForDate = expenses.filter(e => e.expense_date.split('T')[0] === rowData.date)
-      const toDelete = new Set(existingForDate.map(e => e.id))
-
-      // Create/update expenses
-      for (const [category_id, amount] of Object.entries(rowData.amounts)) {
-        if (amount && amount > 0) {
-          const existing = existingForDate.find(e => e.category_id === category_id)
-
-          if (existing) {
-            // Update existing
-            await updateExpense(existing.id, {
-              ...existing,
-              amount: parseFloat(amount),
-              description: rowData.description.trim()
-            })
-            toDelete.delete(existing.id)
-          } else {
-            // Create new
-            await createExpense({
-              amount: parseFloat(amount),
-              description: rowData.description.trim(),
-              expense_date: rowData.date,
-              category_id: category_id
-            })
-          }
-        }
+      if (editingExpenseId === 'new') {
+        // Create new expense
+        await createExpense({
+          amount: parseFloat(rowData.amount),
+          description: rowData.description.trim(),
+          expense_date: rowData.date,
+          category_id: rowData.category_id
+        })
+      } else {
+        // Update existing expense
+        await updateExpense(editingExpenseId, {
+          amount: parseFloat(rowData.amount),
+          description: rowData.description.trim(),
+          expense_date: rowData.date,
+          category_id: rowData.category_id
+        })
       }
 
-      // Delete expenses that were cleared
-      for (const id of toDelete) {
-        await deleteExpense(id)
-      }
-
-      setEditingRowDate(null)
-      setRowData({ date: '', description: '', amounts: {} })
+      setEditingExpenseId(null)
+      setRowData({ date: '', description: '', category_id: '', amount: 0 })
       await loadAllData()
     } catch (err) {
-      console.error('Error saving row:', err)
+      console.error('Error saving expense:', err)
       alert('Error saving: ' + (err.response?.data?.message || err.message))
     }
   }
 
   const validateRow = () => {
-    // Returns true if valid, false otherwise (no alerts)
     if (!rowData.date) return false
     if (!rowData.description.trim()) return false
-    if (Object.keys(rowData.amounts).length === 0 || Object.values(rowData.amounts).every(v => v === 0 || v === '')) return false
+    if (!rowData.category_id) return false
+    if (!rowData.amount || rowData.amount <= 0) return false
     return true
   }
 
   const handleCancelEdit = () => {
-    setEditingRowDate(null)
-    setRowData({ date: '', description: '', amounts: {} })
+    setEditingExpenseId(null)
+    setRowData({ date: '', description: '', category_id: '', amount: 0 })
   }
 
   const handleRowBlur = async (e) => {
-    // Only save if focus is moving outside the row (not to another input in the same row)
+    // Only save if focus is moving outside the row
     const rowContainer = e.currentTarget
     setTimeout(async () => {
       if (!rowContainer.contains(document.activeElement)) {
-        // Focus moved outside the row, try to auto-save only if valid
         if (validateRow()) {
           await handleSaveRow()
         }
@@ -218,14 +189,13 @@ function ExpenseSheet() {
     }
   }
 
-  const handleDeleteRow = async (date) => {
-    if (!window.confirm('Delete all expenses for ' + formatDateString(date) + '?')) {
+  const handleDeleteExpense = async (expenseId) => {
+    if (!window.confirm('Delete this expense?')) {
       return
     }
 
     try {
-      const rowExpenses = expenses.filter(e => e.expense_date.split('T')[0] === date)
-      await Promise.all(rowExpenses.map(e => deleteExpense(e.id)))
+      await deleteExpense(expenseId)
       await loadAllData()
     } catch (err) {
       console.error('Error deleting:', err)
@@ -242,10 +212,10 @@ function ExpenseSheet() {
   // Format date string to display without timezone issues
   const formatDateString = (dateStr) => {
     if (!dateStr) return ''
-    // Parse date string directly (YYYY-MM-DD) without creating Date object to avoid timezone issues
+    // Parse date string directly (YYYY-MM-DD) and format without timezone conversion
     const [year, month, day] = dateStr.split('-')
-    const date = new Date(year, month - 1, day)
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`
   }
 
   if (loading) {
@@ -280,8 +250,22 @@ function ExpenseSheet() {
   const uniqueDates = Array.from(dateSet).sort().reverse()
 
   // Add 10 empty rows for new entries
-  const emptyDates = Array(10).fill(null).map((_, i) => `new-${i}`)
-  const allDates = [...uniqueDates, ...emptyDates]
+  const emptyExpenses = Array(10).fill(null).map((_, i) => ({
+    id: `new-${i}`,
+    date: '',
+    description: '',
+    category_id: '',
+    amount: 0
+  }))
+
+  // Sort expenses by date (newest first), then combine with empty rows
+  const sortedExpenses = [...expenses].sort((a, b) => {
+    const dateA = a.expense_date.split('T')[0]
+    const dateB = b.expense_date.split('T')[0]
+    return dateB.localeCompare(dateA)
+  })
+
+  const allExpenseRows = [...sortedExpenses, ...emptyExpenses]
 
   return (
     <div className="expense-sheet-container">
@@ -315,7 +299,7 @@ function ExpenseSheet() {
           </thead>
 
           <tbody>
-            {/* Budget Row */}
+            {/* Budget Total Row */}
             <tr className="budget-row">
               <td colSpan="2" className="budget-label">Budget</td>
               {categories.map(cat => (
@@ -326,17 +310,54 @@ function ExpenseSheet() {
               <td></td>
             </tr>
 
-            {/* Data Rows */}
-            {allDates.map((date, idx) => {
-              const isRealDate = !date.startsWith('new-')
-              const displayDate = isRealDate ? formatDateString(date) : ''
-              const isEditing = editingRowDate === date
-              const isExpenseRow = isRealDate && expenses.some(e => e.expense_date.split('T')[0] === date)
+            {/* Expense Total Row */}
+            <tr className="total-row">
+              <td colSpan="2" className="total-label">Total Expenses</td>
+              {categories.map(cat => {
+                const total = getCategoryTotal(cat.id)
+                const budget = budgets[cat.name] || 0
+                const isOver = budget > 0 && total > budget
+                return (
+                  <td
+                    key={cat.id}
+                    className={`total-cell ${isOver ? 'overspent' : ''}`}
+                  >
+                    ${total.toFixed(2)}
+                  </td>
+                )
+              })}
+              <td></td>
+            </tr>
+
+            {/* Remaining Row */}
+            <tr className="remaining-row">
+              <td colSpan="2" className="remaining-label">Remaining</td>
+              {categories.map(cat => {
+                const total = getCategoryTotal(cat.id)
+                const budget = budgets[cat.name] || 0
+                const remaining = budget - total
+                return (
+                  <td
+                    key={cat.id}
+                    className={`remaining-cell ${remaining < 0 ? 'overspent' : 'under'}`}
+                  >
+                    {remaining < 0 ? '-' : ''}${Math.abs(remaining).toFixed(2)}
+                  </td>
+                )
+              })}
+            </tr>
+
+            {/* Individual Expense Rows */}
+            {allExpenseRows.map((exp, idx) => {
+              const expIdStr = String(exp.id)
+              const isRealExpense = !expIdStr.startsWith('new-')
+              const isEditing = editingExpenseId === exp.id
+              const displayDate = isRealExpense ? formatDateString(exp.expense_date.split('T')[0]) : ''
 
               return (
-                <tr key={`${date}-${idx}`} className={isEditing ? 'editing-row' : isExpenseRow ? 'expense-row' : 'empty-row'}>
+                <tr key={`${exp.id}-${idx}`} className={isEditing ? 'editing-row' : isRealExpense ? 'expense-row' : 'empty-row'}>
                   {isEditing ? (
-                    // Edit mode - entire row is editable
+                    // Edit mode
                     <>
                       <td className="date-cell edit-mode" onBlur={handleRowBlur}>
                         <input
@@ -358,16 +379,39 @@ function ExpenseSheet() {
                         />
                       </td>
                       {categories.map(cat => (
-                        <td key={cat.id} className="data-cell edit-mode" onBlur={handleRowBlur}>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={rowData.amounts[cat.id] || ''}
-                            onChange={(e) => handleRowAmountChange(cat.id, e.target.value)}
-                            onKeyDown={handleRowKeyDown}
-                            placeholder="0.00"
-                            className="cell-input"
-                          />
+                        <td 
+                          key={cat.id} 
+                          className="category-amount-cell edit-mode" 
+                          onBlur={handleRowBlur}
+                        >
+                          {rowData.category_id === cat.id ? (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={rowData.amount || ''}
+                              onChange={(e) => handleRowFieldChange('amount', e.target.value ? parseFloat(e.target.value) : 0)}
+                              onKeyDown={handleRowKeyDown}
+                              placeholder="0.00"
+                              className="cell-input"
+                              autoFocus
+                            />
+                          ) : (
+                            <select
+                              value={rowData.category_id === cat.id ? cat.id : ''}
+                              onChange={(e) => {
+                                if (e.target.value === cat.id) {
+                                  handleRowFieldChange('category_id', cat.id)
+                                }
+                              }}
+                              className="cell-input"
+                              style={{ width: '100%' }}
+                            >
+                              <option value="">{cat.name}</option>
+                              {rowData.category_id === '' && (
+                                <option value={cat.id}>→ {cat.name}</option>
+                              )}
+                            </select>
+                          )}
                         </td>
                       ))}
                       <td className="action-cell edit-mode">
@@ -375,39 +419,36 @@ function ExpenseSheet() {
                       </td>
                     </>
                   ) : (
-                    // View mode - display values
+                    // View mode
                     <>
-                      <td className="date-cell" onClick={() => handleEditRow(date)}>
+                      <td className="date-cell" onClick={() => handleEditExpense(exp)}>
                         {displayDate}
                       </td>
                       <td 
                         className="description-cell" 
-                        onClick={() => handleEditRow(date)}
+                        onClick={() => handleEditExpense(exp)}
                         title="Click to edit"
                       >
-                        {isExpenseRow && expenses.find(e => e.expense_date.split('T')[0] === date)?.description}
+                        {isRealExpense && exp.description}
                       </td>
-                      {categories.map(cat => {
-                        const expense = isRealDate ? getExpenseByDateAndCategory(date, cat.id) : null
-                        return (
-                          <td
-                            key={cat.id}
-                            className="data-cell"
-                            onClick={() => handleEditRow(date)}
-                            title="Click to edit"
-                          >
-                            {expense && expense.amount > 0 && (
-                              <span className="cell-value">${expense.amount.toFixed(2)}</span>
-                            )}
-                          </td>
-                        )
-                      })}
+                      {categories.map(cat => (
+                        <td
+                          key={cat.id}
+                          className="category-amount-cell"
+                          onClick={() => handleEditExpense(exp)}
+                          title="Click to edit"
+                        >
+                          {isRealExpense && exp.category_id === cat.id && exp.amount > 0 && (
+                            <span className="cell-value">${exp.amount.toFixed(2)}</span>
+                          )}
+                        </td>
+                      ))}
                       <td className="action-cell">
-                        {isExpenseRow && (
+                        {isRealExpense && (
                           <button
                             className="btn-delete"
-                            onClick={() => handleDeleteRow(date)}
-                            title="Delete this date row"
+                            onClick={() => handleDeleteExpense(exp.id)}
+                            title="Delete this expense"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -418,48 +459,62 @@ function ExpenseSheet() {
                 </tr>
               )
             })}
-
-            {/* Totals Row */}
-            <tr className="total-row">
-              <td colSpan="2" className="total-label">Total</td>
-              {categories.map(cat => {
-                const total = getCategoryTotal(cat.id)
-                const budget = budgets[cat.name] || 0
-                const isOver = budget > 0 && total > budget
-
-                return (
-                  <td
-                    key={cat.id}
-                    className={`total-cell ${isOver ? 'overspent' : ''}`}
-                  >
-                    ${total.toFixed(2)}
-                  </td>
-                )
-              })}
-              <td></td>
-            </tr>
-
-            {/* Remaining Row */}
-            <tr className="budget-actual-row">
-              <td colSpan="2" className="label">Remaining</td>
-              {categories.map(cat => {
-                const total = getCategoryTotal(cat.id)
-                const budget = budgets[cat.name] || 0
-                const remaining = budget - total
-
-                return (
-                  <td
-                    key={cat.id}
-                    className={`status-cell ${remaining < 0 ? 'overspent' : 'under'}`}
-                  >
-                    {remaining < 0 ? '-' : ''}${Math.abs(remaining).toFixed(2)}
-                  </td>
-                )
-              })}
-              <td></td>
-            </tr>
           </tbody>
         </table>
+      </div>
+
+      {/* Summary Section */}
+      <div className="expense-summary">
+        <div className="summary-row">
+          <div className="summary-label">Budget by Category</div>
+          <div className="summary-values">
+            {categories.map(cat => (
+              <div key={cat.id} className="summary-item">
+                <span className="item-label">{cat.name}:</span>
+                <span className="item-value">${budgets[cat.name] || 0}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="summary-row">
+          <div className="summary-label">Total by Category</div>
+          <div className="summary-values">
+            {categories.map(cat => {
+              const total = getCategoryTotal(cat.id)
+              const budget = budgets[cat.name] || 0
+              const isOver = budget > 0 && total > budget
+              return (
+                <div key={cat.id} className={`summary-item ${isOver ? 'overspent' : ''}`}>
+                  <span className="item-label">{cat.name}:</span>
+                  <span className="item-value">${total.toFixed(2)}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="summary-row">
+          <div className="summary-label">Remaining by Category</div>
+          <div className="summary-values">
+            {categories.map(cat => {
+              const total = getCategoryTotal(cat.id)
+              const budget = budgets[cat.name] || 0
+              const remaining = budget - total
+              return (
+                <div 
+                  key={cat.id} 
+                  className={`summary-item ${remaining < 0 ? 'overspent' : 'under'}`}
+                >
+                  <span className="item-label">{cat.name}:</span>
+                  <span className="item-value">
+                    {remaining < 0 ? '-' : ''}${Math.abs(remaining).toFixed(2)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="help-text">

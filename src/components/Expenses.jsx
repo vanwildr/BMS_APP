@@ -329,9 +329,16 @@ function Expenses() {
               </tr>
             </thead>
             <tbody>
-              {expenses.map((expense) => (
+              {expenses.map((expense) => {
+                // Parse date string directly without timezone conversion
+                const dateStr = expense.expense_date.split('T')[0]
+                const [year, month, day] = dateStr.split('-')
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                const formattedDate = `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`
+                
+                return (
                 <tr key={expense.id}>
-                  <td>{new Date(expense.expense_date).toLocaleDateString()}</td>
+                  <td>{formattedDate}</td>
                   <td>
                     <strong>{expense.description}</strong>
                     {expense.description2 && <div style={{ fontSize: '0.9em', color: '#333', marginTop: '4px' }}>{expense.description2}</div>}
@@ -350,7 +357,8 @@ function Expenses() {
                     </button>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
             <tfoot>
               <tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold', borderTop: '2px solid #ddd' }}>
