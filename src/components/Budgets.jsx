@@ -15,7 +15,7 @@ function Budgets() {
   const [formData, setFormData] = useState({
     category_id: '',
     amount: '',
-    period: 2, // Monthly
+    period: 2, // Biweekly
     start_date: '',
     end_date: '',
     alert_threshold: 80
@@ -174,7 +174,7 @@ function Budgets() {
     setFormData({
       category_id: '',
       amount: '',
-      period: 2,
+      period: 2, // Biweekly
       start_date: period.startDate,
       end_date: period.endDate,
       alert_threshold: 80
@@ -320,8 +320,9 @@ function Budgets() {
                   required
                 >
                   <option value="1">Weekly</option>
-                  <option value="2">Monthly</option>
-                  <option value="3">Yearly</option>
+                  <option value="2">Biweekly</option>
+                  <option value="3">Monthly</option>
+                  <option value="4">Yearly</option>
                 </select>
               </div>
               <div className="form-group">

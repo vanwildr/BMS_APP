@@ -17,7 +17,7 @@ function Expenses() {
     end_date: new Date().toISOString().split('T')[0],
     category_id: '',
     page: 1,
-    pageSize: 20,
+    pageSize: 10000,
     sortBy: 'expense_date',
     sortOrder: 'desc'
   })

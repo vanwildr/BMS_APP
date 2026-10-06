@@ -58,6 +58,9 @@ export const getExpenses = async (params) => {
     if (params?.end_date) {
       query = query.lte('expense_date', params.end_date)
     }
+    if (params?.category_id) {
+      query = query.eq('category_id', params.category_id)
+    }
 
     query = query.order('expense_date', { ascending: false })
 
@@ -270,6 +273,7 @@ export const getBudgets = async (params) => {
     const { data, error } = await supabase
       .from('budgets')
       .select('*, categories(name)')
+      .eq('isActive', true)
       .order('category_id')
     if (error) handleError(error)
     

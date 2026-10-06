@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { getExpenses, createExpense, updateExpense, deleteExpense, getCategories, getBudgets } from '../services/api'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import '../styles/ExpenseSheet.css'
 
 function ExpenseSheet() {
+  const PAYDAY_START = new Date('2026-09-11')
+  const PAYDAY_CYCLE = 14 // days
+  
   const [expenses, setExpenses] = useState([])
   const [categories, setCategories] = useState([])
   const [budgets, setBudgets] = useState({})
   const [loading, setLoading] = useState(true)
-  const [currentMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7))
+  const [selectedPaydayIndex, setSelectedPaydayIndex] = useState(0)
   const [editingExpenseId, setEditingExpenseId] = useState(null) // ID of expense being edited
   const [rowData, setRowData] = useState({
     date: '',
@@ -18,25 +22,47 @@ function ExpenseSheet() {
   })
   const [error, setError] = useState(null)
 
+  // Calculate payday periods from a base date
+  const getPaydayPeriod = (index) => {
+    const startDate = new Date(PAYDAY_START)
+    startDate.setDate(startDate.getDate() + index * PAYDAY_CYCLE)
+    const endDate = new Date(startDate)
+    endDate.setDate(endDate.getDate() + PAYDAY_CYCLE - 1)
+    
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      displayStart: startDate.toLocaleDateString(),
+      displayEnd: endDate.toLocaleDateString()
+    }
+  }
+
+  // Get current payday period
+  const getCurrentPaydayIndex = () => {
+    const today = new Date().toISOString().split('T')[0]
+    const date = new Date(today + 'T00:00:00')
+    const diffMs = date - PAYDAY_START
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    return Math.floor(diffDays / PAYDAY_CYCLE)
+  }
+
   // Load data on mount
   useEffect(() => {
+    setSelectedPaydayIndex(getCurrentPaydayIndex())
     loadAllData()
   }, [])
 
-  const getLastDayOfMonth = (year, month) => {
-    // month is 1-based (1 = January, 12 = December)
-    return new Date(year, month, 0).getDate()
-  }
+  useEffect(() => {
+    loadAllData()
+  }, [selectedPaydayIndex])
 
   const loadAllData = async () => {
     setLoading(true)
     setError(null)
     try {
-      // Calculate proper date range for current month
-      const [year, month] = currentMonth.split('-').map(Number)
-      const lastDay = getLastDayOfMonth(year, month)
-      const endDate = `${currentMonth}-${String(lastDay).padStart(2, '0')}`
-      const startDate = `${currentMonth}-01`
+      const period = getPaydayPeriod(selectedPaydayIndex)
+      const startDate = period.startDate
+      const endDate = period.endDate
 
       console.log(`Loading expenses for ${startDate} to ${endDate}`)
 
@@ -218,6 +244,36 @@ function ExpenseSheet() {
     return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`
   }
 
+  // Calculate chart data for budget totals (only active budgets)
+  const getChartData = () => {
+    let totalBudget = 0
+    let totalExpenses = 0
+
+    categories.forEach(category => {
+      const categoryExpenses = expenses
+        .filter(e => e.category_id === category.id)
+        .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0)
+      
+      const budget = budgets[category.name] || 0
+      // Only include budget if it's not zero (meaning it's active in our system)
+      if (budget > 0) {
+        totalBudget += budget
+        totalExpenses += categoryExpenses
+      }
+    })
+
+    const totalRemaining = totalBudget - totalExpenses
+
+    return [
+      {
+        name: 'Totals',
+        Budget: parseFloat(totalBudget.toFixed(2)),
+        Expenses: parseFloat(totalExpenses.toFixed(2)),
+        Remaining: parseFloat(Math.max(totalRemaining, 0).toFixed(2))
+      }
+    ]
+  }
+
   if (loading) {
     return (
       <div className="expense-sheet-container">
@@ -267,10 +323,36 @@ function ExpenseSheet() {
 
   const allExpenseRows = [...sortedExpenses, ...emptyExpenses]
 
+  const currentPeriod = getPaydayPeriod(selectedPaydayIndex)
+
   return (
     <div className="expense-sheet-container">
       <div className="expense-sheet-header">
-        <h1>📊 Expense Sheet - {currentMonth}</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+          <div>
+            <h1>📊 Expense Sheet (Biweekly)</h1>
+            <div style={{ marginTop: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button 
+                className="btn btn-sm" 
+                onClick={() => setSelectedPaydayIndex(selectedPaydayIndex - 1)}
+                style={{ padding: '6px 12px' }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div style={{ minWidth: '220px', textAlign: 'center' }}>
+                <small style={{ color: '#666', display: 'block' }}>Payday Period</small>
+                <strong>{currentPeriod.displayStart} - {currentPeriod.displayEnd}</strong>
+              </div>
+              <button 
+                className="btn btn-sm" 
+                onClick={() => setSelectedPaydayIndex(selectedPaydayIndex + 1)}
+                style={{ padding: '6px 12px' }}
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="header-buttons">
           <button className="btn btn-primary" onClick={handleAddNewRow}>
             <Plus size={18} /> New Entry
@@ -282,6 +364,79 @@ function ExpenseSheet() {
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
+
+      {/* Budget Summary Chart */}
+      <div style={{ 
+        backgroundColor: '#fff', 
+        padding: '20px', 
+        borderRadius: '8px', 
+        marginBottom: '20px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
+      }}>
+        <h2 style={{ marginBottom: '15px', color: '#333' }}>Budget Summary - {currentPeriod.displayStart} to {currentPeriod.displayEnd}</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={getChartData()} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip 
+              formatter={(value) => `$${value.toFixed(2)}`}
+              contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
+            />
+            <Legend />
+            <Bar dataKey="Budget" fill="#2196F3" name="Total Budget" />
+            <Bar dataKey="Expenses" fill="#F44336" name="Total Expenses" />
+            <Bar dataKey="Remaining" fill="#4CAF50" name="Total Remaining" />
+          </BarChart>
+        </ResponsiveContainer>
+
+        {/* Summary Cards */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+          gap: '15px', 
+          marginTop: '20px' 
+        }}>
+          <div style={{ 
+            backgroundColor: '#E3F2FD', 
+            padding: '15px', 
+            borderRadius: '6px', 
+            borderLeft: '4px solid #2196F3',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '11px', color: '#666', marginBottom: '5px' }}>Total Budget</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#2196F3' }}>
+              ${getChartData()[0].Budget.toFixed(2)}
+            </div>
+          </div>
+
+          <div style={{ 
+            backgroundColor: '#FFEBEE', 
+            padding: '15px', 
+            borderRadius: '6px', 
+            borderLeft: '4px solid #F44336',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '11px', color: '#666', marginBottom: '5px' }}>Total Expenses</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#F44336' }}>
+              ${getChartData()[0].Expenses.toFixed(2)}
+            </div>
+          </div>
+
+          <div style={{ 
+            backgroundColor: '#E8F5E9', 
+            padding: '15px', 
+            borderRadius: '6px', 
+            borderLeft: '4px solid #4CAF50',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '11px', color: '#666', marginBottom: '5px' }}>Total Remaining</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#4CAF50' }}>
+              ${getChartData()[0].Remaining.toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="expense-sheet-wrapper">
         <table className="expense-sheet">
